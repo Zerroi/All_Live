@@ -1,54 +1,70 @@
 <template>
-  <div class="room">
-    <div class="room-header">
-      <button @click="goBack" class="back-btn">← 返回</button>
-      <div class="room-info">
-        <h2 v-if="roomInfo" class="room-name">{{ roomInfo.roomName }}</h2>
-        <p v-if="roomInfo" class="room-owner">主播：{{ roomInfo.ownerName }}</p>
-        <div v-if="roomInfo && roomInfo.isLive" class="live-badge">直播中</div>
-        <div v-else class="offline-badge">未开播</div>
-      </div>
-      <div class="room-id">房间ID: {{ roomId }}</div>
-    </div>
-
-    <div class="room-content">
-      <div class="video-container">
-        <LivePlayer
+  <div class="room-main-container">
+    <div class="room-left">
+      <div v-if="roomInfo && roomInfo.isLive" class="room-left-video">
+        <ArtPlayer
           ref="playerRef"
           :stream-url="streamUrl"
+          :danmaku-enabled="danmakuEnabled"
+          :danmaku-messages="danmakuMessages"
           @error="handlePlayerError"
           @ready="handlePlayerReady"
-        />
-        <DanmakuDisplay
-          ref="danmakuDisplayRef"
-          :messages="danmakuMessages"
-          :enabled="danmakuEnabled"
+          class="room-left-video-play"
         />
       </div>
-
-      <div class="control-panel">
-        <div class="control-row">
-          <button @click="toggleDanmaku" class="control-btn" :class="{ active: danmakuEnabled }">
-            {{ danmakuEnabled ? '弹幕: 开' : '弹幕: 关' }}
-          </button>
-          <button @click="refreshStream" class="control-btn">刷新直播流</button>
+      <div v-else class="room-left-video-notLive">直播间未开播</div>
+      <div class="room-left-info">
+        <div class="room-left-info-head">
+          <div class="head-pic-placeholder">{{ roomInfo?.ownerName?.charAt(0) || '?' }}</div>
         </div>
-
-        <div class="status-bar">
-          <span v-if="connectionStatus" class="status-text" :class="connectionStatus.type">
-            {{ connectionStatus.message }}
-          </span>
+        <div class="room-left-info-after-head">
+          <div class="room-left-info-after-head-name">
+            <div :class="roomInfo?.isLive ? 'info-isLive' : 'info-notLive'">
+              {{ roomInfo?.isLive ? '直播中' : '未开播' }}
+            </div>
+            {{ roomInfo?.roomName || '加载中...' }}
+          </div>
+          <div class="room-left-info-after-head-owner">
+            斗鱼 · {{ roomInfo?.ownerName || '未知' }}
+          </div>
         </div>
+        <div class="room-left-info-right">
+          <div class="room-left-info-right-link">
+            <a :href="getRoomUrl()" target="_blank" title="跳转到直播间">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="room-right">
+      <div class="room-right-top">
+        直播聊天
+      </div>
+      <div ref="danmakuListRef" class="room-right-body" @scroll="handleScroll">
+        <div class="room-right-body-danmu-box">
+          <transition-group name="danmu">
+            <div v-for="(msg, index) in danmakuMessages" :key="index" class="room-right-show-danmu">
+              <span class="danmu-name">{{ msg.userName }}:</span>
+              <span class="danmu-msg">{{ msg.message }}</span>
+            </div>
+          </transition-group>
+        </div>
+      </div>
+      <div v-if="!isBottom" @click="scrollToBottom" class="to-bottom">
+        返回底部
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import LivePlayer from '@/components/LivePlayer.vue'
-import DanmakuDisplay from '@/components/DanmakuDisplay.vue'
+import ArtPlayer from '@/components/ArtPlayer.vue'
 import { DouyuDanmaku } from '@/services/douyuDanmaku'
 import { DouyuLive } from '@/services/douyuLive'
 import type { LiveMessage } from '@/types/danmaku'
@@ -57,14 +73,14 @@ const route = useRoute()
 const router = useRouter()
 
 const roomId = computed(() => route.params.id as string)
-const playerRef = ref<InstanceType<typeof LivePlayer> | null>(null)
-const danmakuDisplayRef = ref<InstanceType<typeof DanmakuDisplay> | null>(null)
+const playerRef = ref<InstanceType<typeof ArtPlayer> | null>(null)
+const danmakuListRef = ref<HTMLElement | null>(null)
 
 const streamUrl = ref('')
 const danmakuMessages = ref<LiveMessage[]>([])
 const danmakuEnabled = ref(true)
 const roomInfo = ref<any>(null)
-const connectionStatus = ref<{ type: string; message: string } | null>(null)
+const isBottom = ref(true)
 
 let douyuDanmaku: DouyuDanmaku | null = null
 let douyuLive: DouyuLive | null = null
@@ -77,12 +93,22 @@ onMounted(async () => {
   douyuDanmaku.setCallbacks({
     onMessage: (msg: LiveMessage) => {
       danmakuMessages.value.push(msg)
+      // 限制弹幕列表长度
+      if (danmakuMessages.value.length > 200) {
+        danmakuMessages.value.splice(0, 100)
+      }
+      // 自动滚动到底部
+      nextTick(() => {
+        if (isBottom.value) {
+          scrollToBottom()
+        }
+      })
     },
     onClose: (msg: string) => {
-      showStatus('error', msg)
+      console.error('弹幕连接关闭:', msg)
     },
     onReady: () => {
-      showStatus('success', '弹幕连接成功')
+      console.log('弹幕连接成功')
     },
   })
 
@@ -102,62 +128,53 @@ onUnmounted(() => {
   cleanup()
 })
 
-function goBack() {
-  router.push('/')
+function getRoomUrl() {
+  return `https://www.douyu.com/${roomId.value}`
 }
 
 async function loadRoomInfo() {
   if (!douyuLive) return
 
-  showStatus('info', '正在获取房间信息...')
   const info = await douyuLive.getRoomInfo(roomId.value)
   
   if (info) {
     roomInfo.value = info
-    if (info.isLive) {
-      showStatus('success', '正在直播')
-    } else {
-      showStatus('warning', '主播未开播')
-    }
-  } else {
-    showStatus('error', '获取房间信息失败')
   }
 }
 
 async function loadStream() {
   if (!douyuLive) return
 
-  showStatus('info', '正在加载直播流...')
   const url = await douyuLive.getLiveStream(roomId.value)
   
   if (url) {
     streamUrl.value = url
-  } else {
-    showStatus('error', '无法获取直播流，可能未开播或房间不存在')
   }
 }
 
 function handlePlayerError(message: string) {
-  showStatus('error', message)
+  console.error('播放器错误:', message)
 }
 
 function handlePlayerReady() {
-  showStatus('success', '直播流加载成功')
+  console.log('播放器就绪')
 }
 
-function toggleDanmaku() {
-  danmakuEnabled.value = !danmakuEnabled.value
+function handleScroll() {
+  if (!danmakuListRef.value) return
+  
+  const target = danmakuListRef.value
+  const isAtBottom = (target.scrollHeight - target.clientHeight) - target.scrollTop <= 10
+  isBottom.value = isAtBottom
 }
 
-function refreshStream() {
-  loadStream()
-}
-
-function showStatus(type: 'info' | 'success' | 'warning' | 'error', message: string) {
-  connectionStatus.value = { type, message }
-  setTimeout(() => {
-    connectionStatus.value = null
-  }, 5000)
+function scrollToBottom() {
+  nextTick(() => {
+    if (danmakuListRef.value) {
+      danmakuListRef.value.scrollTop = danmakuListRef.value.scrollHeight
+    }
+    isBottom.value = true
+  })
 }
 
 function cleanup() {
@@ -169,147 +186,248 @@ function cleanup() {
 </script>
 
 <style scoped>
-.room {
-  display: flex;
-  flex-direction: column;
+.room-main-container {
   height: 100vh;
+  width: 100%;
+  display: flex;
   background: #0f0f1a;
 }
 
-.room-header {
+.room-left {
+  position: relative;
+  width: 78%;
+  height: 100%;
+}
+
+.room-left-video {
+  position: absolute;
+  width: 100%;
+  background-color: #000;
+  top: 0;
+  left: 0;
+  bottom: 80px;
+}
+
+.room-left-video-notLive {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 80px;
+  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
+  justify-content: center;
+  text-align: justify;
+  font-weight: bolder;
+  font-size: 25px;
+  color: #939495;
+  background-color: #000;
+}
+
+.room-left-video-play {
+  width: 100%;
+  height: 100%;
+}
+
+.room-left-info {
+  width: 100%;
+  height: 80px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
   background: rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.back-btn {
-  padding: 8px 16px;
-  font-size: 14px;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.back-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.room-info {
-  flex: 1;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin: 0 24px;
+  padding: 0 16px;
 }
 
-.room-name {
-  font-size: 18px;
-  font-weight: bold;
-  color: #fff;
-  margin: 0;
-}
-
-.room-owner {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0;
-}
-
-.live-badge {
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: bold;
-  color: #fff;
-  background: #ff4444;
-  border-radius: 4px;
-}
-
-.offline-badge {
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: bold;
-  color: #fff;
-  background: #666;
-  border-radius: 4px;
-}
-
-.room-id {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.room-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.room-left-info-head {
+  float: left;
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
-.video-container {
-  flex: 1;
-  position: relative;
-  background: #000;
-}
-
-.control-panel {
-  padding: 16px 24px;
-  background: rgba(255, 255, 255, 0.05);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.control-row {
+.head-pic-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.control-btn {
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 500;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
   color: #fff;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
 }
 
-.control-btn:hover {
+.room-left-info-after-head {
+  float: left;
+  margin-left: 12px;
+  margin-top: 8px;
+}
+
+.room-left-info-after-head-name {
+  font-weight: bold;
+  font-size: 18px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-isLive {
+  height: 20px;
+  padding: 0 8px;
+  background-color: #ff4444;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+  display: flex;
+  align-items: center;
+}
+
+.info-notLive {
+  height: 20px;
+  padding: 0 8px;
+  background-color: #666;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+  display: flex;
+  align-items: center;
+}
+
+.room-left-info-after-head-owner {
+  margin-top: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.room-left-info-right {
+  float: right;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.room-left-info-right-link a {
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.room-left-info-right-link a:hover {
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.room-right {
+  width: 22%;
+  height: 100%;
+  position: relative;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.room-right-top {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: justify;
+  font-weight: bold;
+  font-size: 16px;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.room-right-body {
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.room-right-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.room-right-body::-webkit-scrollbar-thumb {
+  border-radius: 3px;
   background: rgba(255, 255, 255, 0.2);
 }
 
-.control-btn.active {
-  background: #ff6b00;
+.room-right-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
-.status-bar {
-  min-height: 24px;
+.room-right-body-danmu-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.status-text {
+.room-right-show-danmu {
+  font-size: 14px;
+  color: #fff;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.danmu-name {
+  font-weight: bold;
+  color: #ff6b00;
+}
+
+.danmu-msg {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.to-bottom {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 107, 0, 0.9);
+  font-weight: bold;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
   font-size: 14px;
 }
 
-.status-text.info {
-  color: #2196f3;
+.to-bottom:hover {
+  background-color: rgba(255, 107, 0, 1);
+  transform: translateX(-50%) scale(1.05);
 }
 
-.status-text.success {
-  color: #4caf50;
+/* 弹幕动画 */
+.danmu-enter-active,
+.danmu-leave-active {
+  transition: all 0.3s ease;
 }
 
-.status-text.warning {
-  color: #ff9800;
+.danmu-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
 }
 
-.status-text.error {
-  color: #f44336;
+.danmu-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
 }
 </style>
