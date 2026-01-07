@@ -3,8 +3,23 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'Home',
+    redirect: '/home/recommend',
+  },
+  {
+    path: '/home',
     component: () => import('@/views/Home.vue'),
+    children: [
+      {
+        path: 'recommend',
+        name: 'Recommend',
+        component: () => import('@/views/Recommend.vue'),
+      },
+      {
+        path: 'follow',
+        name: 'Follow',
+        component: () => import('@/views/Follow.vue'),
+      },
+    ],
   },
   {
     path: '/room/:id',

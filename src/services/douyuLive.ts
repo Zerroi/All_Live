@@ -249,6 +249,130 @@ export class DouyuLive {
 
     return str.replace(/&[a-zA-Z0-9#]+;/g, (entity) => entities[entity] || entity)
   }
+
+  /**
+   * 获取推荐直播间列表
+   * @param page 页码，默认为1
+   */
+  async getRecommendRooms(page: number = 1): Promise<LiveCategoryResult> {
+    try {
+      const response = await fetch(`https://www.douyu.com/japi/weblist/apinc/allpage/6/${page}`, {
+        headers: {
+          'User-Agent': this.USER_AGENT,
+          'Referer': 'https://www.douyu.com/',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      const items: LiveRoomItem[] = []
+
+      if (result.data?.rl) {
+        for (const item of result.data.rl) {
+          // 只获取直播中的房间（type === 1）
+          if (item.type !== 1) {
+            continue
+          }
+
+          const roomItem: LiveRoomItem = {
+            cover: item.rs16?.toString() || '',
+            online: item.ol || 0,
+            roomId: item.rid?.toString() || '',
+            title: item.rn?.toString() || '',
+            userName: item.nn?.toString() || '',
+          }
+          items.push(roomItem)
+        }
+      }
+
+      const hasMore = page < (result.data?.pgcnt || 1)
+
+      return {
+        hasMore,
+        items,
+      }
+    } catch (error) {
+      console.error('获取推荐直播间失败:', error)
+      return {
+        hasMore: false,
+        items: [],
+      }
+    }
+  }
+
+  /**
+   * 获取关注列表
+   * 注意：此方法需要用户登录态，实际使用时需要配合登录系统
+   */
+  async getFollowRooms(): Promise<LiveRoomItem[]> {
+    try {
+      // 斗鱼关注列表API需要登录态
+      // 这里提供一个基础实现，实际使用时需要从cookie或token中获取用户信息
+      const response = await fetch('https://www.douyu.com/japi/weblist/apinc/myfollow/1/0', {
+        headers: {
+          'User-Agent': this.USER_AGENT,
+          'Referer': 'https://www.douyu.com/',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      const items: LiveRoomItem[] = []
+
+      if (result.data?.rl) {
+        for (const item of result.data.rl) {
+          // 只获取直播中的房间
+          if (item.show_status === 1) {
+            const roomItem: LiveRoomItem = {
+              cover: item.room_pic?.toString() || '',
+              online: parseInt(item.hot || '0', 10),
+              roomId: item.room_id?.toString() || '',
+              title: item.room_name?.toString() || '',
+              userName: item.nickname?.toString() || '',
+            }
+            items.push(roomItem)
+          }
+        }
+      }
+
+      return items
+    } catch (error) {
+      console.error('获取关注列表失败:', error)
+      return []
+    }
+  }
+}
+
+/**
+ * 直播间项
+ */
+export interface LiveRoomItem {
+  /** 封面图 */
+  cover: string
+  /** 在线人数 */
+  online: number
+  /** 房间ID */
+  roomId: string
+  /** 房间标题 */
+  title: string
+  /** 主播名称 */
+  userName: string
+}
+
+/**
+ * 直播分类结果
+ */
+export interface LiveCategoryResult {
+  /** 是否有更多数据 */
+  hasMore: boolean
+  /** 房间列表 */
+  items: LiveRoomItem[]
 }
 
 /**
