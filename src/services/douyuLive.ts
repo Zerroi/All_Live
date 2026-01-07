@@ -1,4 +1,4 @@
-import { getSign } from '@/utils/douyuSign'
+import { DouyuSign } from '../utils/douyuSign'
 
 /**
  * 斗鱼直播流服务
@@ -24,9 +24,9 @@ export class DouyuLive {
 
       // 2. 获取加密数据
       const crptext = await this._getCrptext(roomId)
-        console.log('crptext type:', typeof crptext, 'value:', crptext);
+        // console.log('crptext type:', typeof crptext, 'value:', crptext);
       // 3. 生成签名
-      const signData = getSign(crptext, roomId)
+      const signData = await DouyuSign.getSign(crptext.data[`room${roomId}`], roomId)
 
       // 4. 构建请求参数
       const params = this._buildParams(signData, rate, cdn)
@@ -54,7 +54,7 @@ export class DouyuLive {
       const crptext = await this._getCrptext(roomId)
 
       // 3. 生成签名
-      const signData = getSign(crptext, roomId)
+      const signData = await DouyuSign.getSign(crptext, roomId)
 
       // 4. 构建请求参数（获取所有清晰度）
       const params = this._buildParams(signData, -1, '')
