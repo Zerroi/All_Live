@@ -1,133 +1,103 @@
 <template>
   <div class="home">
-    <div class="home-container">
-      <h1 class="title">斗鱼直播</h1>
-      <p class="subtitle">输入房间ID开始观看</p>
-      
-      <div class="search-box">
-        <input
-          v-model="roomId"
-          type="text"
-          placeholder="请输入房间ID"
-          class="room-input"
-          @keyup.enter="goToRoom"
-        />
-        <button @click="goToRoom" class="go-btn">进入直播间</button>
-      </div>
+    <aside class="home-aside">
+      <router-link class="home-aside-item" to="/home/recommend">
+        <div class="home-aside-item-icon">🏠</div>
+        <div class="home-aside-item-words">推荐</div>
+      </router-link>
 
-      <div class="tips">
-        <p>提示：输入斗鱼直播间的房间ID即可观看</p>
-        <p>例如：房间ID 9999 可以进入官方直播间</p>
-      </div>
-    </div>
+      <router-link class="home-aside-item" to="/home/follow">
+        <div class="home-aside-item-icon">⭐</div>
+        <div class="home-aside-item-words">关注</div>
+      </router-link>
+    </aside>
+
+    <main class="home-main">
+      <router-view></router-view>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, onUnmounted } from 'vue'
 
-const router = useRouter()
-const roomId = ref('')
+onMounted(() => {
+  console.log('Home mounted')
+})
 
-function goToRoom() {
-  const id = roomId.value.trim()
-  if (id) {
-    router.push(`/room/${id}`)
-  }
-}
+onUnmounted(() => {
+  console.log('Home unmounted')
+})
 </script>
 
 <style scoped>
 .home {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  height: 100vh;
+  background: #0f0f1a;
 }
 
-.home-container {
-  text-align: center;
-  padding: 60px 40px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  max-width: 500px;
-  width: 90%;
+.home-aside {
+  width: 130px;
+  padding-top: 10px;
+  height: 100%;
+  box-shadow: 5px 0px 5px -5px #4e4c4c;
+  overflow: hidden;
+  position: relative;
+  background: #1a1a2e;
 }
 
-.title {
-  font-size: 48px;
-  font-weight: bold;
-  color: #ff6b00;
-  margin-bottom: 10px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.subtitle {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 40px;
-}
-
-.search-box {
+.home-aside-item {
   display: flex;
-  gap: 12px;
-  margin-bottom: 30px;
-}
-
-.room-input {
-  flex: 1;
-  padding: 14px 20px;
-  font-size: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  outline: none;
+  align-items: center;
+  padding: 10px 0;
+  padding-left: 20px;
+  width: 100%;
+  height: 50px;
   transition: all 0.3s;
+  text-decoration: none;
+  color: #e0e0e0;
 }
 
-.room-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.room-input:focus {
-  border-color: #ff6b00;
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.go-btn {
-  padding: 14px 30px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #fff;
-  background: linear-gradient(135deg, #ff6b00 0%, #ff8533 100%);
-  border: none;
-  border-radius: 8px;
+.home-aside-item:hover {
   cursor: pointer;
-  transition: all 0.3s;
-  white-space: nowrap;
+  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.go-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.4);
+.home-aside-item.router-link-active {
+  background: rgba(255, 107, 0, 0.2);
+  color: #ff6b00;
+  font-weight: bold;
 }
 
-.go-btn:active {
-  transform: translateY(0);
+.home-aside-item-icon {
+  font-size: 20px;
+  margin-right: 10px;
 }
 
-.tips {
-  color: rgba(255, 255, 255, 0.5);
+.home-aside-item-words {
   font-size: 14px;
-  line-height: 1.8;
+  font-weight: 300;
 }
 
-.tips p {
-  margin: 4px 0;
+.home-main {
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.home-main::-webkit-scrollbar {
+  width: 8px;
+}
+
+.home-main::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: #8e8e8e;
+}
+
+.home-main::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
 }
 </style>
