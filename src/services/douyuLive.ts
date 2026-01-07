@@ -256,7 +256,7 @@ export class DouyuLive {
    */
   async getRecommendRooms(page: number = 1): Promise<LiveCategoryResult> {
     try {
-      const response = await fetch(`https://www.douyu.com/japi/weblist/apinc/allpage/6/${page}`, {
+      const response = await fetch(`${this.API_BASE}/japi/weblist/apinc/allpage/6/${page}`, {
         headers: {
           'User-Agent': this.USER_AGENT,
           'Referer': 'https://www.douyu.com/',
@@ -311,7 +311,7 @@ export class DouyuLive {
     try {
       // 斗鱼关注列表API需要登录态
       // 这里提供一个基础实现，实际使用时需要从cookie或token中获取用户信息
-      const response = await fetch('https://www.douyu.com/japi/weblist/apinc/myfollow/1/0', {
+      const response = await fetch(`${this.API_BASE}/japi/weblist/apinc/myfollow/1/0`, {
         headers: {
           'User-Agent': this.USER_AGENT,
           'Referer': 'https://www.douyu.com/',
