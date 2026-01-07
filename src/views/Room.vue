@@ -62,15 +62,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue'
+import {useRoute} from 'vue-router'
 import ArtPlayer from '@/components/ArtPlayer.vue'
-import { DouyuDanmaku } from '@/services/douyuDanmaku'
-import { DouyuLive } from '@/services/douyuLive'
-import type { LiveMessage } from '@/types/danmaku'
+import {DouyuDanmaku} from '@/services/douyuDanmaku'
+import {DouyuLive} from '@/services/douyuLive'
+import type {LiveMessage} from '@/types/danmaku'
 
 const route = useRoute()
-const router = useRouter()
 
 const roomId = computed(() => route.params.id as string)
 const playerRef = ref<InstanceType<typeof ArtPlayer> | null>(null)
@@ -164,8 +163,7 @@ function handleScroll() {
   if (!danmakuListRef.value) return
   
   const target = danmakuListRef.value
-  const isAtBottom = (target.scrollHeight - target.clientHeight) - target.scrollTop <= 10
-  isBottom.value = isAtBottom
+  isBottom.value = (target.scrollHeight - target.clientHeight) - target.scrollTop <= 10
 }
 
 function scrollToBottom() {
@@ -187,10 +185,8 @@ function cleanup() {
 
 <style scoped>
 .room-main-container {
-  height: 100vh;
+  height: 100%;
   width: 100%;
-  display: flex;
-  background: #0f0f1a;
 }
 
 .room-left {
@@ -202,16 +198,16 @@ function cleanup() {
 .room-left-video {
   position: absolute;
   width: 100%;
-  background-color: #000;
-  top: 0;
-  left: 0;
+  background-color: black;
+  top: 0px;
+  left: 0px;
   bottom: 80px;
 }
 
 .room-left-video-notLive {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0px;
+  left: 0px;
   bottom: 80px;
   width: 100%;
   display: flex;
@@ -221,7 +217,7 @@ function cleanup() {
   font-weight: bolder;
   font-size: 25px;
   color: #939495;
-  background-color: #000;
+  background-color: black;
 }
 
 .room-left-video-play {
@@ -233,109 +229,114 @@ function cleanup() {
   width: 100%;
   height: 80px;
   position: absolute;
-  bottom: 0;
-  left: 0;
-  background: rgba(255, 255, 255, 0.05);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
+  bottom: 0px;
+  left: 0px;
 }
 
 .room-left-info-head {
   float: left;
+  margin-top: 9px;
+  margin-left: 8px;
   width: 60px;
   height: 60px;
+  box-shadow: #2b2b2b 0px 0px 5px 1px;
   border-radius: 10px;
-  overflow: hidden;
 }
 
 .head-pic-placeholder {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   font-weight: bold;
   color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .room-left-info-after-head {
   float: left;
-  margin-left: 12px;
+  margin-left: 10px;
   margin-top: 8px;
 }
 
 .room-left-info-after-head-name {
   font-weight: bold;
-  font-size: 18px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  font-size: 20px;
 }
 
 .info-isLive {
-  height: 20px;
-  padding: 0 8px;
-  background-color: #ff4444;
+  margin-top: 6px;
+  margin-right: 5px;
+  float: left;
+  height: 18px;
+  width: 45px;
+  background-color: #c10f0f;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: 5px;
   font-weight: 600;
   text-align: center;
-  color: #fff;
-  display: flex;
-  align-items: center;
+  color: #F3F6F8;
 }
 
 .info-notLive {
-  height: 20px;
-  padding: 0 8px;
-  background-color: #666;
+  margin-top: 6px;
+  margin-right: 5px;
+  float: left;
+  height: 18px;
+  width: 45px;
+  background-color: #979797;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: 5px;
   font-weight: 600;
   text-align: center;
-  color: #fff;
-  display: flex;
-  align-items: center;
+  color: #F3F6F8;
 }
 
 .room-left-info-after-head-owner {
-  margin-top: 8px;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 15px;
 }
 
 .room-left-info-right {
   float: right;
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 20px;
+  margin-top: 8px;
+  margin-right: 10px;
+  font-size: 35px;
+}
+
+.room-left-info-right-link {
+  margin-top: 5px;
+  float: right;
+  margin-right: 25px;
+  transition: all 0.2s;
+}
+
+.room-left-info-right-link:hover {
+  cursor: pointer;
+  transform: scale(1.2);
 }
 
 .room-left-info-right-link a {
-  color: rgba(255, 255, 255, 0.7);
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
+  color: #4e4c4c;
+  text-decoration: none;
 }
 
 .room-left-info-right-link a:hover {
-  color: #fff;
-  transform: scale(1.1);
+  text-decoration: underline;
+  color: #4e4c4c;
 }
 
 .room-right {
   width: 22%;
-  height: 100%;
-  position: relative;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
+  height: 92%;
+  position: fixed;
+  top: 50px;
+  right: 0px;
+  border-left: 1px solid #c8c8c9;
 }
 
 .room-right-top {
@@ -346,88 +347,71 @@ function cleanup() {
   justify-content: center;
   text-align: justify;
   font-weight: bold;
-  font-size: 16px;
-  color: #fff;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.02);
+  font-size: 20px;
+  border-bottom: 1px solid #c8c8c9;
 }
 
 .room-right-body {
-  flex: 1;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 10px;
+  width: 100%;
+  position: absolute;
+  top: 40px;
+  bottom: 0px;
 }
 
 .room-right-body::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .room-right-body::-webkit-scrollbar-thumb {
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.room-right-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  background: #8e8e8e;
 }
 
 .room-right-body-danmu-box {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .room-right-show-danmu {
-  font-size: 14px;
-  color: #fff;
-  line-height: 1.4;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+  margin-top: 10px;
+  margin-left: 10px;
+  font-size: 15px;
+  width: 94%;
 }
 
 .danmu-name {
+  float: left;
   font-weight: bold;
-  color: #ff6b00;
 }
 
 .danmu-msg {
-  color: rgba(255, 255, 255, 0.9);
+  margin-left: 5px;
+  font-weight: normal;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: hidden;
 }
 
 .to-bottom {
   position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: rgba(255, 107, 0, 0.9);
+  bottom: 80px;
+  background-color: rgba(54, 51, 51, 0.7);
   font-weight: bold;
-  color: #fff;
-  padding: 8px 20px;
+  color: #ffffff;
+  left: 37%;
+  height: 30px;
   border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 14px;
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: justify;
 }
 
 .to-bottom:hover {
-  background-color: rgba(255, 107, 0, 1);
-  transform: translateX(-50%) scale(1.05);
-}
-
-/* 弹幕动画 */
-.danmu-enter-active,
-.danmu-leave-active {
-  transition: all 0.3s ease;
-}
-
-.danmu-enter-from {
-  opacity: 0;
-  transform: translateX(20px);
-}
-
-.danmu-leave-to {
-  opacity: 0;
-  transform: translateX(-20px);
+  cursor: pointer;
+  background-color: #4e4c4c;
 }
 </style>
